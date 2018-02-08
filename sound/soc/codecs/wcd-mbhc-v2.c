@@ -1201,7 +1201,6 @@ exit:
 	return spl_hs;
 }
 
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 static void wcd_headset_btn_delay(struct work_struct *work)
 {
 	struct wcd_mbhc *mbhc =
@@ -1214,7 +1213,6 @@ static void wcd_headset_btn_delay(struct work_struct *work)
 	 */
 	mbhc->ignore_btn_intr = false;
 }
-#endif
 
 static void wcd_correct_swch_plug(struct work_struct *work)
 {
@@ -1233,20 +1231,16 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	int rc, spl_hs_count = 0;
 	int cross_conn;
 	int try = 0;
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 	int retry = 0;
 	int headset_cnt = 0;
-#endif
 
 	pr_debug("%s: enter\n", __func__);
 
 	mbhc = container_of(work, struct wcd_mbhc, correct_plug_swch);
 	codec = mbhc->codec;
 
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 	cancel_delayed_work_sync(&mbhc->mbhc_btn_delay_dwork);
 	mbhc->ignore_btn_intr = true;
-#endif
 
 	/*
 	 * Enable micbias/pullup for detection in correct work.
@@ -1318,9 +1312,7 @@ correct_plug_type:
 
 	timeout = jiffies + msecs_to_jiffies(HS_DETECT_PLUG_TIME_MS);
 	while (!time_after(jiffies, timeout)) {
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 		retry++;
-#endif
 		if (mbhc->hs_detect_work_stop) {
 			pr_debug("%s: stop requested: %d\n", __func__,
 					mbhc->hs_detect_work_stop);
@@ -1373,11 +1365,7 @@ correct_plug_type:
 		 * instead of hogging system by contineous polling, wait for
 		 * sometime and re-check stop request again.
 		 */
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 		msleep(5 * retry);
-#else
-		msleep(180);
-#endif
 		if (hs_comp_res && (spl_hs_count < WCD_MBHC_SPL_HS_CNT)) {
 			spl_hs = wcd_mbhc_check_for_spl_headset(mbhc,
 								&spl_hs_count);
@@ -1389,7 +1377,6 @@ correct_plug_type:
 			}
 		}
 
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 		/*
 		 * It's pretty certain to be a headset after being detected
 		 * as such 10 times, so exit early to reduce detection
@@ -1401,7 +1388,6 @@ correct_plug_type:
 				break;
 			}
 		}
-#endif
 		if ((!hs_comp_res) && (!is_pa_on)) {
 			/* Check for cross connection*/
 			ret = wcd_check_cross_conn(mbhc);
@@ -1423,12 +1409,8 @@ correct_plug_type:
 					pr_err("%s: switch didn't work\n",
 						  __func__);
 					plug_type = MBHC_PLUG_TYPE_GND_MIC_SWAP;
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 					/* Retry instead in case of a noisy detection */
 					continue;
-#else
-					goto report;
-#endif
 				} else {
 					plug_type = MBHC_PLUG_TYPE_GND_MIC_SWAP;
 				}
@@ -1611,10 +1593,8 @@ exit:
 		mbhc->mbhc_cb->hph_pull_down_ctrl(codec, true);
 
 	mbhc->mbhc_cb->lock_sleep(mbhc, false);
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 	schedule_delayed_work(&mbhc->mbhc_btn_delay_dwork,
 					msecs_to_jiffies(750));
-#endif
 	pr_debug("%s: leave\n", __func__);
 }
 
@@ -2114,11 +2094,9 @@ static irqreturn_t wcd_mbhc_btn_press_handler(int irq, void *data)
 				__func__);
 		goto done;
 	}
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 	/* Don't process button interrupts immediately after plug detection */
 	if (mbhc->ignore_btn_intr)
 		goto done;
-#endif
 	mbhc->buttons_pressed |= mask;
 
 /*zhiguang.su@MultiMedia.AudioDrv , 2016/5/24, add for debug*/
@@ -2171,14 +2149,12 @@ static irqreturn_t wcd_mbhc_release_handler(int irq, void *data)
 		goto exit;
 
 	}
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 	/* Don't process button interrupts immediately after plug detection */
 	if (mbhc->ignore_btn_intr) {
 		wcd_cancel_btn_work(mbhc);
 		mbhc->buttons_pressed &= ~WCD_MBHC_JACK_BUTTON_MASK;
 		goto exit;
 	}
-#endif
 	if (mbhc->buttons_pressed & WCD_MBHC_JACK_BUTTON_MASK) {
 
     /*zhiguang.su@MultiMedia.AudioDrv , 2016/5/24, add for debug*/
@@ -2997,10 +2973,8 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_codec *codec,
 		INIT_DELAYED_WORK(&mbhc->mbhc_firmware_dwork,
 				  wcd_mbhc_fw_read);
 		INIT_DELAYED_WORK(&mbhc->mbhc_btn_dwork, wcd_btn_lpress_fn);
-#ifdef CONFIG_MACH_MSM8998_DUMPLING
 		INIT_DELAYED_WORK(&mbhc->mbhc_btn_delay_dwork,
 						wcd_headset_btn_delay);
-#endif
 	}
 	mutex_init(&mbhc->hphl_pa_lock);
 	mutex_init(&mbhc->hphr_pa_lock);
